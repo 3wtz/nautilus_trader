@@ -22,7 +22,11 @@ jobs:
           # 容器内装 capnp + 可选限速省内存
           before-script-linux: |
             set -e
-            echo ">>> Installing Cap’n Proto inside manylinux_2_34 container <<<"
+            # 保存原始工作目录（即 repo 根目录）
+            ORIG_DIR="$PWD"
+            echo "Original Working Directory: $ORIG_DIR"
+
+            echo ">>> Installing Cap’n Proto inside manylinux_2_34 container @/tmp <<<"
             yum install -y git gcc-c++ make autoconf automake libtool openssl-devel
             cd /tmp
             git clone https://github.com/capnproto/capnproto.git --depth=1 --branch v1.0.2
@@ -38,6 +42,9 @@ jobs:
             capnp --version
             export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
             pkg-config --exists capnp && echo "✅ capnp available via pkg-config"
+
+            # 👇 关键：切回原始目录（repo 根）
+            cd "$ORIG_DIR"
 
             #yum install -y epel-release
             #yum install -y capnproto capnp-devel
