@@ -1,0 +1,69 @@
+# .github/workflows/build-wheel.yml
+name: Build nautilus_trader manylinux_2_34 wheel
+
+on:
+  push:
+    branches: [ build-manylinux28 ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for manylinux_2_34_x86_64 (Python 3.13)
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux:9
+
+    steps:
+      - name: Install system dependencies
+        run: |
+          dnf install -y epel-release
+          dnf install -y python313 python313-pip python313-devel \
+                        git clang make curl pkg-config capnproto-devel gcc-c++ \
+                        libstdc++-static
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        run: |
+          ln -sf /usr/bin/python3.13 /usr/local/bin/python
+          ln -sf /usr/bin/pip3.13 /usr/local/bin/pip
+          python -m pip install --upgrade pip uv
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install build dependencies
+        run: |
+          pip install "cython>=3.0.11" "numpy>=1.26" "setuptools" "wheel" "packaging"
+
+      # ✅ 关键：运行 build.py（它会自动 cargo build + copy .so + compile Cython）
+      - name: Build Rust and Cython extensions
+        run: |
+          BUILD_MODE=release \
+          PARALLEL_BUILD=true \
+          COPY_TO_SOURCE=true \
+          python build.py
+
+      # ✅ 现在 nautilus_trader/core/ 下已有 .so，可以安全打包
+      - name: Build wheel with uv
+        run: |
+          uv sync --frozen --no-install-package nautilus_trader
+          uv build --wheel
+
+      - name: Patch wheel platform tag to manylinux_2_34_x86_64
+        run: |
+          pip install auditwheel
+          cd dist
+          for whl in *.whl; do
+            if [[ "$whl" == *"-linux_x86_64.whl" ]]; then
+              auditwheel repair "$whl" --plat manylinux_2_34_x86_64 -w .
+              rm "$whl"
+              echo "✅ Repaired and renamed with auditwheel"
+            fi
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nautilus-trader-manylinux_2_34
+          path: dist/*.whl
