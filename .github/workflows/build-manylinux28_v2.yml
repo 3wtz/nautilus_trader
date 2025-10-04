@@ -19,6 +19,13 @@ jobs:
         with:
           manylinux: '2_34'
           target: x86_64
+          # 容器内装 capnp + 可选限速省内存
+          before-script-linux: |
+            yum install -y epel-release
+            yum install -y capnproto capnp-devel
+            # （可选）限 1 核 + 无 LTO 省内存
+            # export CARGO_BUILD_JOBS=1
+            # export RUSTFLAGS="-C lto=off"
           # *** 显式指定含 [package] 的 crate ***
           working-directory: ./crates/pyo3
           args: >
