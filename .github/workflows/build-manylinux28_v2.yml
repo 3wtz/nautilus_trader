@@ -31,9 +31,12 @@ jobs:
             ./configure --prefix=/usr/local --enable-shared
             make -j$(nproc)
             make install
+            # 👇 关键：删除源码，彻底避免被扫描
+            rm -rf /tmp/capnproto
             ldconfig
             capnp --version
             export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+            pkg-config --exists capnp && echo "✅ capnp available via pkg-config"
 
             #yum install -y epel-release
             #yum install -y capnproto capnp-devel
