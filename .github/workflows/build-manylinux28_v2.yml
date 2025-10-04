@@ -20,7 +20,7 @@ jobs:
           manylinux: '2_34'
           target: x86_64
           # *** 显式指定含 [package] 的 crate ***
-          manifest-path: ./crates/pyo3/Cargo.toml
+          working-directory: ./crates/pyo3
           args: >
             --release --all-features
             --interpreter python3.13
