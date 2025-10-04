@@ -24,6 +24,7 @@ jobs:
             set -e
             echo ">>> Installing Cap’n Proto inside manylinux_2_34 container <<<"
             yum install -y git gcc-c++ make autoconf automake libtool openssl-devel
+            cd /tmp
             git clone https://github.com/capnproto/capnproto.git --depth=1 --branch v1.0.2
             cd capnproto/c++
             autoreconf -fi
@@ -32,6 +33,7 @@ jobs:
             make install
             ldconfig
             capnp --version
+            export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
 
             #yum install -y epel-release
             #yum install -y capnproto capnp-devel
