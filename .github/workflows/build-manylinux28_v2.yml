@@ -31,7 +31,8 @@ jobs:
             ./configure --prefix=/usr/local --enable-shared
             make -j$(nproc)
             make install
-            # 👇 关键：删除源码，彻底避免被扫描
+            # 👇 关键：先退出编译的目录，再删除源码，彻底避免被扫描
+            cd /tmp
             rm -rf /tmp/capnproto
             ldconfig
             capnp --version
