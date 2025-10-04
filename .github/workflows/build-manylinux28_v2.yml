@@ -21,8 +21,17 @@ jobs:
           target: x86_64
           # 容器内装 capnp + 可选限速省内存
           before-script-linux: |
-            yum install -y epel-release
-            yum install -y capnproto capnp-devel
+            # 下载官方 capnp 0.10.x 二进制（x86_64 Linux）
+            curl -L -o /tmp/capnp.tar.gz \
+              https://github.com/capnproto/capnproto/releases/download/v0.10.2/capnproto-0.10.2-linux-x86_64.tar.gz
+            tar -C /tmp -xzf /tmp/capnp.tar.gz
+            cp /tmp/capnproto-0.10.2-linux-x86_64/bin/capnp /usr/local/bin/
+            chmod +x /usr/local/bin/capnp
+            # 验证版本
+            capnp --version
+
+            #yum install -y epel-release
+            #yum install -y capnproto capnp-devel
             # （可选）限 1 核 + 无 LTO 省内存
             # export CARGO_BUILD_JOBS=1
             # export RUSTFLAGS="-C lto=off"
