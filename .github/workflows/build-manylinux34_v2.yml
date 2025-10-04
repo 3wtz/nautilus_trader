@@ -1,4 +1,3 @@
-# .github/workflows/build-wheel.yml
 name: Build nautilus_trader manylinux_2_34 wheel
 
 on:
@@ -11,33 +10,30 @@ jobs:
     name: Build for manylinux_2_34_x86_64 (Python 3.13)
     runs-on: ubuntu-latest
     container:
-      image: rockylinux:9
+      image: quay.io/pypa/manylinux_2_34_x86_64
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Install system dependencies
         run: |
-          dnf install -y epel-release
-          dnf install -y python313 python313-pip python313-devel \
-                        git clang make curl pkg-config capnproto-devel gcc-c++ \
-                        libstdc++-static
-
-      - uses: actions/checkout@v4
+          yum install -y git clang make pkg-config capnproto-devel
 
       - name: Set up Python 3.13
         run: |
-          ln -sf /usr/bin/python3.13 /usr/local/bin/python
-          ln -sf /usr/bin/pip3.13 /usr/local/bin/pip
+          # Use pre-installed Python 3.13
+          ln -sf /opt/python/cp313-cp313/bin/python /usr/local/bin/python
+          ln -sf /opt/python/cp313-cp313/bin/pip /usr/local/bin/pip
           python -m pip install --upgrade pip uv
 
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
 
-      - name: Install build dependencies
+      - name: Install Python build dependencies
         run: |
-          pip install "cython>=3.0.11" "numpy>=1.26" "setuptools" "wheel" "packaging"
+          pip install "cython>=3.0.11" "numpy>=1.26" "setuptools" "packaging"
 
-      # ✅ 关键：运行 build.py（它会自动 cargo build + copy .so + compile Cython）
       - name: Build Rust and Cython extensions
         run: |
           BUILD_MODE=release \
@@ -45,25 +41,17 @@ jobs:
           COPY_TO_SOURCE=true \
           python build.py
 
-      # ✅ 现在 nautilus_trader/core/ 下已有 .so，可以安全打包
       - name: Build wheel with uv
         run: |
-          uv sync --frozen --no-install-package nautilus_trader
           uv build --wheel
 
-      - name: Patch wheel platform tag to manylinux_2_34_x86_64
+      - name: Repair wheel with auditwheel (ensure manylinux compliance)
         run: |
-          pip install auditwheel
-          cd dist
-          for whl in *.whl; do
-            if [[ "$whl" == *"-linux_x86_64.whl" ]]; then
-              auditwheel repair "$whl" --plat manylinux_2_34_x86_64 -w .
-              rm "$whl"
-              echo "✅ Repaired and renamed with auditwheel"
-            fi
-          done
+          # The wheel is already manylinux_2_34 compatible, but repair ensures no external deps
+          auditwheel repair dist/*.whl -w dist_repaired/
+          mv dist_repaired/*.whl dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: nautilus-trader-manylinux_2_34
+          name: nautilus-trader-manylinux_2_34-py313
           path: dist/*.whl
