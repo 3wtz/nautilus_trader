@@ -1,8 +1,8 @@
-name: Build manylinux_2_28 wheel (cp313)
+name: Build manylinux_2_34 wheel (cp313)
 
 on:
   push:
-    branches: [ main, build-manylinux28 ]
+    branches: [ build-manylinux28 ]
   workflow_dispatch:
 
 jobs:
@@ -17,14 +17,16 @@ jobs:
 
       - uses: messense/maturin-action@v1
         with:
-          manylinux: '2_28'
+          manylinux: '2_34'
           target: x86_64
+          # *** 显式指定含 [package] 的 crate ***
+          manifest-path: ./crates/pyo3/Cargo.toml
           args: >
             --release --all-features
             --interpreter python3.13
-            --out dist
+            --out ../../dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: nautilus-trader-manylinux2_28-cp313
+          name: nautilus-trader-manylinux2_34-cp313
           path: dist/*.whl
