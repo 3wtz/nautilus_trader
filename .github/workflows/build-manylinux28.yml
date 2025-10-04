@@ -28,7 +28,7 @@ jobs:
         with:
           manylinux: ${{ matrix.manylinux }}
           target: x86_64
-          working-directory: ./nautilus_pyo3
+          working-directory: ./nautilus_trader
           args: >
             --release --all-features
             --interpreter python${{ matrix.python }}
