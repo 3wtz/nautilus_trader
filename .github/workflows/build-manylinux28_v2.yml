@@ -21,24 +21,26 @@ jobs:
           target: x86_64
           # 容器内装 capnp + 可选限速省内存
           before-script-linux: |
-            # 下载官方 capnp 0.10.x 二进制（x86_64 Linux）
-            set -euo pipefail
-            CAPNP_VER=0.10.2
-            CAPNP_SHA=d8b3b7f9b5e4c7f2a1b0c9d8e7f6a5b4c3d2e1f0
-            curl -fsSL -o /tmp/capnp \
-              https://github.com/capnproto/capnproto/releases/download/v${CAPNP_VER}/capnp-${CAPNP_VER}-linux-x86_64
-            echo "${CAPNP_SHA}  /tmp/capnp" | sha256sum -c -
-            chmod +x /tmp/capnp
-            mv /tmp/capnp /usr/local/bin/capnp
-            # 强制验证
-            capnp --version || (echo "capnp install failed"; exit 1)
+            set -e
+            echo ">>> Installing Cap’n Proto inside manylinux_2_34 container <<<"
+            yum install -y git gcc-c++ make autoconf automake libtool openssl-devel
+            git clone https://github.com/capnproto/capnproto.git --depth=1 --branch v1.0.2
+            cd capnproto/c++
+            autoreconf -fi
+            ./configure --prefix=/usr/local --enable-shared
+            make -j$(nproc)
+            make install
+            ldconfig
+            capnp --version
 
             #yum install -y epel-release
             #yum install -y capnproto capnp-devel
             # （可选）限 1 核 + 无 LTO 省内存
             # export CARGO_BUILD_JOBS=1
             # export RUSTFLAGS="-C lto=off"
+
           # *** 显式指定含 [package] 的 crate ***
+          # 这个也是调试了好久通过KIMI找到的答案
           working-directory: ./crates/pyo3
           args: >
             --release --all-features
